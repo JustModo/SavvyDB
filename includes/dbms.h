@@ -71,7 +71,7 @@ void add_row_to_table(DatabaseNode *dbNode, const char *table_name);
 void delete_row_from_table(DatabaseNode *dbNode, const char *table_name, int rowIndex);
 void update_row(DatabaseNode *dbNode, const char *table_name, int rowIndex);
 
-void write_database_to_file(DatabaseNode *dbNode, const char *filename);
+void write_all_databases_to_file(DatabaseNode *dbList, const char *filename);
 void read_database_from_file(const char *filename, DatabaseNode **dbList);
 void update_table_schema(DatabaseNode *dbNode, const char *tableName, const char *schemaInput);
 

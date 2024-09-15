@@ -4,6 +4,8 @@
 DatabaseNode *dbList = NULL;
 DatabaseNode *dbNode = NULL;
 
+const char filename[] = "db.txt";
+
 // Create a new database
 void create_database(DatabaseNode **head, const char *db_name)
 {
@@ -101,6 +103,7 @@ void create_table(DatabaseNode *dbNode, const char *tableName)
     dbNode->db.tables = newTableNode;
 
     printw("Table '%s' created with a blank schema.\n", newTableNode->table.name);
+    write_all_databases_to_file(dbList, filename);
 }
 
 // Validate input value by column type
@@ -149,7 +152,7 @@ void add_row_to_table(DatabaseNode *dbNode, const char *table_name)
 
     if (!tableNode)
     {
-        printf("Table '%s' not found in database '%s'.\n", table_name, dbNode->db.name);
+        printw("Table '%s' not found in database '%s'.\n", table_name, dbNode->db.name);
         return;
     }
 
@@ -158,7 +161,7 @@ void add_row_to_table(DatabaseNode *dbNode, const char *table_name)
     newRow.values = malloc(table->numColumns * sizeof(char *));
     if (table->numColumns == 0)
     {
-        printf("Schema not defined\n");
+        printw("Schema not defined\n");
         return;
     }
     for (int i = 0; i < table->numColumns; i++)
@@ -168,17 +171,17 @@ void add_row_to_table(DatabaseNode *dbNode, const char *table_name)
 
         while (1)
         {
-            printf("Enter value for %s: ", currentColumn.name);
-            scanf("%s", input);
+            printw("Enter value for %s: ", currentColumn.name);
+            getstr(input);
 
             if (!validate_value(input, currentColumn.type))
             {
-                printf("Invalid value for %s. Try again.\n", currentColumn.name);
+                printw("Invalid value for %s. Try again.\n", currentColumn.name);
                 continue;
             }
             if (currentColumn.isUnique && !is_value_unique(table, i, input))
             {
-                printf("Value for %s must be unique. Try again.\n", currentColumn.name);
+                printw("Value for %s must be unique. Try again.\n", currentColumn.name);
                 continue;
             }
 
@@ -191,7 +194,7 @@ void add_row_to_table(DatabaseNode *dbNode, const char *table_name)
     table->rows = realloc(table->rows, (table->numRows + 1) * sizeof(Row));
     table->rows[table->numRows] = newRow;
     table->numRows++;
-    printf("Row added to table '%s'.\n", table_name);
+    printw("Row added to table '%s'.\n", table_name);
 }
 
 // List all rows in a table
@@ -206,30 +209,37 @@ void list_rows_in_table(DatabaseNode *dbNode, const char *table_name)
 
     if (!tableNode)
     {
-        printf("Table '%s' not found in database '%s'.\n", table_name, dbNode->db.name);
+        printw("Table '%s' not found in database '%s'.\n", table_name, dbNode->db.name);
         return;
     }
 
     Table *table = &tableNode->table;
     if (table->numColumns == 0)
     {
-        printf("Table empty\n");
+        printw("Table empty\n");
         return;
     }
 
+    // Print index column header
+    printw("(index)\t");
+
+    // Print table headers
     for (int i = 0; i < table->numColumns; i++)
     {
-        printf("%s\t", table->columns[i].name);
+        printw("%s\t", table->columns[i].name);
     }
-    printf("\n");
+    printw("\n");
 
+    // Print table rows with index
     for (int i = 0; i < table->numRows; i++)
     {
+        printw("%d\t", i); // Add index (starting from 1)
+
         for (int j = 0; j < table->numColumns; j++)
         {
-            printf("%s\t", table->rows[i].values[j]);
+            printw("%s\t", table->rows[i].values[j]);
         }
-        printf("\n");
+        printw("\n");
     }
 }
 
@@ -244,7 +254,7 @@ void delete_row_from_table(DatabaseNode *dbNode, const char *table_name, int row
 
     if (tableNode == NULL)
     {
-        printf("Table '%s' not found.\n", table_name);
+        printw("Table '%s' not found.\n", table_name);
         return;
     }
 
@@ -252,7 +262,7 @@ void delete_row_from_table(DatabaseNode *dbNode, const char *table_name, int row
 
     if (rowIndex < 0 || rowIndex >= table->numRows)
     {
-        printf("Invalid row index: %d\n", rowIndex);
+        printw("Invalid row index: %d\n", rowIndex);
         return;
     }
 
@@ -273,11 +283,12 @@ void delete_row_from_table(DatabaseNode *dbNode, const char *table_name, int row
 
     if (table->numRows > 0 && table->rows == NULL)
     {
-        printf("Memory reallocation failed.\n");
+        printw("Memory reallocation failed.\n");
         return;
     }
 
-    printf("Row %d deleted successfully from table '%s'.\n", rowIndex, table_name);
+    printw("Row %d deleted successfully from table '%s'.\n", rowIndex, table_name);
+    write_all_databases_to_file(dbList, filename);
 }
 
 void update_row(DatabaseNode *dbNode, const char *table_name, int rowIndex)
@@ -291,7 +302,7 @@ void update_row(DatabaseNode *dbNode, const char *table_name, int rowIndex)
 
     if (!tableNode)
     {
-        printf("Table '%s' not found in database '%s'.\n", table_name, dbNode->db.name);
+        printw("Table '%s' not found in database '%s'.\n", table_name, dbNode->db.name);
         return;
     }
 
@@ -299,7 +310,7 @@ void update_row(DatabaseNode *dbNode, const char *table_name, int rowIndex)
 
     if (rowIndex < 0 || rowIndex >= table->numRows)
     {
-        printf("Row index %d is out of range for table '%s'.\n", rowIndex, table_name);
+        printw("Row index %d is out of range for table '%s'.\n", rowIndex, table_name);
         return;
     }
 
@@ -308,21 +319,21 @@ void update_row(DatabaseNode *dbNode, const char *table_name, int rowIndex)
     for (int i = 0; i < table->numColumns; i++)
     {
         Column column = table->columns[i];
-        printf("Current value for %s (index %d): %s\n", column.name, i, row->values[i]);
+        printw("Current value for %s (index %d): %s\n", column.name, i, row->values[i]);
         while (1)
         {
-            printf("Enter new value for %s: ", column.name);
-            scanf("%s", input);
+            printw("Enter new value for %s: ", column.name);
+            getstr(input);
 
             if (!validate_value(input, column.type))
             {
-                printf("Invalid value for %s. Try again.\n", column.name);
+                printw("Invalid value for %s. Try again.\n", column.name);
                 continue;
             }
 
             if (column.isUnique && !is_value_unique(table, i, input) && strcmp(input, row->values[i]))
             {
-                printf("Value for %s must be unique. Try again.\n", column.name);
+                printw("Value for %s must be unique. Try again.\n", column.name);
                 continue;
             }
 
@@ -332,7 +343,8 @@ void update_row(DatabaseNode *dbNode, const char *table_name, int rowIndex)
         }
     }
 
-    printf("Row %d updated in table '%s'.\n", rowIndex, table_name);
+    printw("Row %d updated in table '%s'.\n", rowIndex, table_name);
+    write_all_databases_to_file(dbList, filename);
 }
 
 void free_table(Table *table)
@@ -409,6 +421,7 @@ void delete_table(DatabaseNode *dbNode, const char *table_name)
     free(current);
 
     printf("Table '%s' deleted from database '%s'.\n", table_name, dbNode->db.name);
+    write_all_databases_to_file(dbList, filename);
 }
 
 // Function to write a table and its schema to a file
@@ -434,16 +447,8 @@ void write_table(FILE *file, Table *table)
     }
 }
 
-// Function to write the entire database, including tables, to a file
-void write_database_to_file(DatabaseNode *dbNode, const char *filename)
+void write_database_to_file(DatabaseNode *dbNode, FILE *file)
 {
-    FILE *file = fopen(filename, "w");
-    if (!file)
-    {
-        perror("Failed to open file");
-        return;
-    }
-
     // Write the database name
     fprintf(file, "%s\n", dbNode->db.name);
 
@@ -455,8 +460,28 @@ void write_database_to_file(DatabaseNode *dbNode, const char *filename)
         tableNode = tableNode->next;
     }
 
+    // Write the delimiter to mark the end of this database
+    fprintf(file, "END_DB\n");
+}
+
+void write_all_databases_to_file(DatabaseNode *dbList, const char *filename)
+{
+    FILE *file = fopen(filename, "w");
+    if (!file)
+    {
+        perror("Failed to open file");
+        return;
+    }
+
+    DatabaseNode *currentNode = dbList;
+    while (currentNode)
+    {
+        write_database_to_file(currentNode, file);
+        currentNode = currentNode->next;
+    }
+
     fclose(file);
-    printf("Database '%s' written to file '%s'.\n", dbNode->db.name, filename);
+    printw("All databases written to file '%s'.\n", filename);
 }
 
 void read_database_from_file(const char *filename, DatabaseNode **dbList)
@@ -468,134 +493,154 @@ void read_database_from_file(const char *filename, DatabaseNode **dbList)
         return;
     }
 
-    // Read the database name
-    char dbName[MAX_INPUT];
-    if (fscanf(file, "%s", dbName) != 1)
+    DatabaseNode *lastDbNode = NULL;
+
+    while (1)
     {
-        perror("Failed to read database name");
-        fclose(file);
-        return;
-    }
-
-    // Create a new DatabaseNode
-    DatabaseNode *dbNode = malloc(sizeof(DatabaseNode));
-    if (!dbNode)
-    {
-        perror("Failed to allocate memory");
-        fclose(file);
-        return;
-    }
-
-    // Initialize the new DatabaseNode
-    strcpy(dbNode->db.name, dbName);
-    dbNode->db.tables = NULL;
-    dbNode->next = NULL;
-
-    // Add the new DatabaseNode to the list
-    dbNode->next = *dbList;
-    *dbList = dbNode;
-
-    // Read tables
-    TableNode **currentTableNode = &dbNode->db.tables;
-    while (!feof(file))
-    {
-        char tableName[MAX_INPUT];
-        int numColumns, numRows;
-
-        // Read the table name, number of columns, and number of rows
-        if (fscanf(file, "%s %d %d", tableName, &numColumns, &numRows) != 3)
+        // Read the database name
+        char dbName[MAX_INPUT];
+        if (fscanf(file, "%s", dbName) != 1)
         {
             if (feof(file))
+                break; // End of file
+            perror("Failed to read database name");
+            fclose(file);
+            return;
+        }
+
+        // Create a new DatabaseNode
+        DatabaseNode *dbNode = malloc(sizeof(DatabaseNode));
+        if (!dbNode)
+        {
+            perror("Failed to allocate memory");
+            fclose(file);
+            return;
+        }
+
+        // Initialize the new DatabaseNode
+        strcpy(dbNode->db.name, dbName);
+        dbNode->db.tables = NULL;
+        dbNode->next = NULL;
+
+        // Add the new DatabaseNode to the list
+        if (lastDbNode)
+        {
+            lastDbNode->next = dbNode;
+        }
+        else
+        {
+            *dbList = dbNode;
+        }
+        lastDbNode = dbNode;
+
+        // Log the identified database
+        printf("Database '%s' identified.\n", dbName);
+
+        // Read tables for this database
+        TableNode **currentTableNode = &dbNode->db.tables;
+
+        while (1)
+        {
+            char tableName[MAX_INPUT];
+            int numColumns, numRows;
+
+            // Read the table name, number of columns, and number of rows
+            int readResult = fscanf(file, "%s %d %d", tableName, &numColumns, &numRows);
+            if (readResult == EOF)
+            {
+                // End of file
                 break;
-            perror("Failed to read table metadata");
-            fclose(file);
-            return;
-        }
-
-        // Initialize the table
-        Table table;
-        strcpy(table.name, tableName);
-        table.numColumns = numColumns;
-        table.numRows = numRows;
-
-        // Allocate memory for columns
-        table.columns = malloc(numColumns * sizeof(Column));
-        if (!table.columns)
-        {
-            perror("Failed to allocate memory for columns");
-            fclose(file);
-            return;
-        }
-
-        // Read each column's details
-        for (int i = 0; i < numColumns; i++)
-        {
-            int type, isUnique;
-            if (fscanf(file, "%s %d %d", table.columns[i].name, &type, &isUnique) != 3)
-            {
-                perror("Failed to read column details");
-                fclose(file);
-                return;
             }
-            table.columns[i].type = (ColumnType)type;
-            table.columns[i].isUnique = isUnique;
-        }
-
-        // Allocate memory for rows
-        table.rows = malloc(numRows * sizeof(Row));
-        if (!table.rows)
-        {
-            perror("Failed to allocate memory for rows");
-            fclose(file);
-            return;
-        }
-
-        // Read row data
-        for (int i = 0; i < numRows; i++)
-        {
-            table.rows[i].values = malloc(numColumns * sizeof(char *));
-            if (!table.rows[i].values)
+            else if (readResult != 3)
             {
-                perror("Failed to allocate memory for row values");
+                break;
+            }
+
+            // Initialize the table
+            Table table;
+            strcpy(table.name, tableName);
+            table.numColumns = numColumns;
+            table.numRows = numRows;
+
+            // Allocate memory for columns
+            table.columns = malloc(numColumns * sizeof(Column));
+            if (!table.columns)
+            {
+                perror("Failed to allocate memory for columns");
                 fclose(file);
                 return;
             }
 
-            for (int j = 0; j < numColumns; j++)
+            // Read each column's details
+            for (int i = 0; i < numColumns; i++)
             {
-                table.rows[i].values[j] = malloc(MAX_INPUT * sizeof(char));
-                if (!table.rows[i].values[j])
+                int type, isUnique;
+                if (fscanf(file, "%s %d %d", table.columns[i].name, &type, &isUnique) != 3)
                 {
-                    perror("Failed to allocate memory for row value");
+                    perror("Failed to read column details");
                     fclose(file);
                     return;
                 }
-                if (fscanf(file, "%s", table.rows[i].values[j]) != 1)
+                table.columns[i].type = (ColumnType)type;
+                table.columns[i].isUnique = isUnique;
+            }
+
+            // Allocate memory for rows
+            table.rows = malloc(numRows * sizeof(Row));
+            if (!table.rows)
+            {
+                perror("Failed to allocate memory for rows");
+                fclose(file);
+                return;
+            }
+
+            // Read row data
+            for (int i = 0; i < numRows; i++)
+            {
+                table.rows[i].values = malloc(numColumns * sizeof(char *));
+                if (!table.rows[i].values)
                 {
-                    perror("Failed to read row value");
+                    perror("Failed to allocate memory for row values");
                     fclose(file);
                     return;
+                }
+
+                for (int j = 0; j < numColumns; j++)
+                {
+                    table.rows[i].values[j] = malloc(MAX_INPUT * sizeof(char));
+                    if (!table.rows[i].values[j])
+                    {
+                        perror("Failed to allocate memory for row value");
+                        fclose(file);
+                        return;
+                    }
+                    if (fscanf(file, "%s", table.rows[i].values[j]) != 1)
+                    {
+                        perror("Failed to read row value");
+                        fclose(file);
+                        return;
+                    }
                 }
             }
-        }
 
-        // Add the new TableNode to the DatabaseNode
-        TableNode *newTableNode = malloc(sizeof(TableNode));
-        if (!newTableNode)
-        {
-            perror("Failed to allocate memory for TableNode");
-            fclose(file);
-            return;
-        }
+            // Add the new TableNode to the DatabaseNode
+            TableNode *newTableNode = malloc(sizeof(TableNode));
+            if (!newTableNode)
+            {
+                perror("Failed to allocate memory for TableNode");
+                fclose(file);
+                return;
+            }
 
-        newTableNode->table = table;
-        newTableNode->next = NULL;
-        *currentTableNode = newTableNode;
-        currentTableNode = &newTableNode->next;
+            newTableNode->table = table;
+            newTableNode->next = NULL;
+            *currentTableNode = newTableNode;
+            currentTableNode = &newTableNode->next;
+        }
     }
 
     fclose(file);
-    printf("Database '%s' read from file '%s'.\n", dbNode->db.name, filename);
+    printf("All databases read from file '%s'.\n", filename);
 }
 
 Table *find_table(DatabaseNode *dbNode, const char *tableName)
@@ -645,14 +690,14 @@ void update_table_schema(DatabaseNode *dbNode, const char *tableName, const char
 
     // Break the schemaInput into lines
     char *inputCopy = strdup(schemaInput);
-    char *line = strtok(inputCopy, "\n");
+    char *line = strtok(inputCopy, ":");
 
     // Count lines to know how many columns we will need
     int columnCount = 0;
     while (line)
     {
         columnCount++;
-        line = strtok(NULL, "\n");
+        line = strtok(NULL, ":");
     }
 
     free(inputCopy);
@@ -669,7 +714,7 @@ void update_table_schema(DatabaseNode *dbNode, const char *tableName, const char
 
     // Parse each line
     int index = 0;
-    line = strtok(inputCopy, "\n");
+    line = strtok(inputCopy, ":");
     while (line)
     {
         char columnName[MAX_INPUT];
@@ -680,7 +725,7 @@ void update_table_schema(DatabaseNode *dbNode, const char *tableName, const char
         int parts = sscanf(line, "%s %s %s", columnName, columnTypeStr, uniqueFlag);
         if (parts < 2)
         {
-            fprintf(stderr, "Invalid column definition: %s\n", line);
+            printw("Invalid column definition: %s\n", line);
             free(inputCopy);
             return;
         }
@@ -690,7 +735,7 @@ void update_table_schema(DatabaseNode *dbNode, const char *tableName, const char
         int columnType = parse_column_type(columnTypeStr);
         if (columnType == -1)
         {
-            fprintf(stderr, "Invalid column type: %s\n", columnTypeStr);
+            printw("Invalid column type: %s\n", columnTypeStr);
             free(inputCopy);
             return;
         }
@@ -700,10 +745,11 @@ void update_table_schema(DatabaseNode *dbNode, const char *tableName, const char
         table->columns[index].isUnique = (parts == 3 && strcmp(uniqueFlag, "unique") == 0) ? 1 : 0;
 
         index++;
-        line = strtok(NULL, "\n");
+        line = strtok(NULL, ":");
     }
 
     table->numColumns = columnCount;
     free(inputCopy);
-    printf("Table '%s' schema updated with %d columns.\n", table->name, columnCount);
+    printw("Table '%s' schema updated with %d columns.\n", table->name, columnCount);
+    write_all_databases_to_file(dbList, filename);
 }

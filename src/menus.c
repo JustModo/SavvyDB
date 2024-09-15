@@ -177,7 +177,6 @@ void handle_table_menu()
                 getstr(table_name);
                 noecho();
                 refresh();
-
                 clear();
                 create_table(dbNode, table_name);
                 printw("Press any key to go back to the menu...\n");
@@ -258,7 +257,7 @@ void handle_record_menu(const char *table_name)
     int num_choices = 6;
     const char *choices[] = {
         "Create Record",
-        "Read Record",
+        "Read Records",
         "Update Record",
         "Delete Record",
         "Edit Schema",
@@ -289,14 +288,75 @@ void handle_record_menu(const char *table_name)
             else if (highlight == 4)
             {
                 clear();
-                printw("Schema for Table #\n\n");
-                printw("id\t\tINTEGER\tprimary\tauto-increment\n");
-                printw("Name\t\tSTRING\trequired\n");
-                printw("USN\t\tSTRING\trequired\n");
-                printw("PhNumber\tINTEGER\n");
-                printw("Passed\t\tBOOLEAN\n");
+                mvprintw(0, 0, "Enter Schema:\n");
+                char schema[200];
+                echo();
+                getstr(schema);
+                noecho();
                 refresh();
+                update_table_schema(dbNode, table_name, schema);
+                printw("Press any key to go back to the menu...");
                 getch();
+            }
+            else if (highlight == 0)
+            {
+                clear();
+                echo();
+                add_row_to_table(dbNode, table_name);
+                noecho();
+                write_all_databases_to_file(dbList, "db.txt");
+                getch();
+            }
+            else if (highlight == 1)
+            {
+                clear();
+                echo();
+                list_rows_in_table(dbNode, table_name);
+                noecho();
+                getch();
+            }
+            else if (highlight == 2)
+            {
+                char input[MAX_INPUT];
+                int rowIndex;
+                clear();
+                echo();
+                printw("Enter index of value to UPDATE:\n");
+                getstr(input);
+
+                if (sscanf(input, "%d", &rowIndex) != 1)
+                {
+                    printw("Invalid input. Please enter a valid number.\n");
+                    getch();
+                }
+                else
+                {
+                    update_row(dbNode, table_name, rowIndex);
+                    getch();
+                }
+                noecho();
+            }
+            else if (highlight == 3)
+            {
+                char input[MAX_INPUT];
+                int rowIndex;
+                clear();
+                echo();
+                printw("Enter index of value to DELETE:\n");
+                getstr(input);
+
+                if (sscanf(input, "%d", &rowIndex) != 1)
+                {
+                    printw("Invalid input. Please enter a valid number.\n");
+                    getch();
+                }
+                else
+                {
+                    delete_row_from_table(dbNode, table_name, rowIndex);
+                    getch();
+                }
+
+                noecho();
             }
             else
             {
