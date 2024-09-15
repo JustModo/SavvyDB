@@ -284,6 +284,18 @@ void handle_record_menu(const char *table_name)
         case 10:
             if (highlight == 5)
                 return;
+            else if (highlight == 4)
+            {
+                clear();
+                printw("Schema for Table #\n\n");
+                printw("id\t\tINTEGER\tprimary\tauto-increment\n");
+                printw("Name\t\tSTRING\trequired\n");
+                printw("USN\t\tSTRING\trequired\n");
+                printw("PhNumber\tINTEGER\n");
+                printw("Passed\t\tBOOLEAN\n");
+                refresh();
+                getch();
+            }
             else
             {
                 clear();
