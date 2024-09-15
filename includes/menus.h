@@ -9,6 +9,7 @@ void handle_database_menu();
 void handle_table_menu();
 void view_tables();
 void open_playground();
-void handle_record_menu(const char *table_name);
+void handle_record_menu();
+void view_tables_option();
 
 #endif

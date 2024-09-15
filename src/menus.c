@@ -1,7 +1,8 @@
 #include <string.h>
 #include "menus.h"
+#include "dbms.h"
 
-#define MAX_INPUT 100
+#define MAX_INPUT 50
 
 void display_menu(const char *title, const char *choices[], int num_choices, int *highlight)
 {
@@ -70,9 +71,10 @@ void handle_main_menu()
                 echo();
                 getstr(password);
                 noecho();
+                printf("\n");
 
-                mvprintw(3, 0, "Database '%s' created with password '%s'.", db_name, password);
-                mvprintw(4, 0, "Press any key to go back to the menu...");
+                create_database(&dbList, db_name);
+                printw("Press any key to go back to the menu...\n");
                 refresh();
                 getch();
                 break;
@@ -88,11 +90,9 @@ void handle_database_menu()
 {
     int highlight = 0;
     int choice = 0;
-    const char *choices[] = {
-        "Database1",
-        "Database2",
-        "Go Back"};
-    int num_choices = sizeof(choices) / sizeof(choices[0]);
+    const char *choices[50 + 1];
+
+    int num_choices = list_databases(dbList, choices, sizeof(choices) / sizeof(choices[0]));
 
     while (1)
     {
@@ -114,11 +114,11 @@ void handle_database_menu()
             }
             break;
         case 10:
-            if (highlight == 2)
+            if (highlight == num_choices - 1)
                 return;
             else
             {
-                char *selected_db = (char *)choices[highlight];
+                dbNode = find_database(dbList, choices[highlight]);
                 handle_table_menu();
             }
             break;
@@ -129,15 +129,20 @@ void handle_database_menu()
 void handle_table_menu()
 {
     int highlight = 0;
-    int num_choices = 3;
+    int num_choices = 4;
     const char *choices[] = {
         "View Tables",
+        "Create Table",
         "Open Playground",
         "Go Back"};
 
+    char dispText[100];
+
+    snprintf(dispText, sizeof(dispText), "Select Option in %s", dbNode->db.name);
+
     while (1)
     {
-        display_menu("Select an Option", choices, num_choices, &highlight);
+        display_menu(dispText, choices, num_choices, &highlight);
         int ch = getch();
 
         switch (ch)
@@ -155,7 +160,7 @@ void handle_table_menu()
             }
             break;
         case 10: // Enter key
-            if (highlight == 2)
+            if (highlight == num_choices - 1)
             {
                 return;
             }
@@ -164,6 +169,22 @@ void handle_table_menu()
                 view_tables();
             }
             else if (highlight == 1)
+            {
+                clear();
+                mvprintw(0, 0, "Enter Table Name: ");
+                char table_name[MAX_INPUT];
+                echo();
+                getstr(table_name);
+                noecho();
+                refresh();
+
+                clear();
+                create_table(dbNode, table_name);
+                printw("Press any key to go back to the menu...\n");
+                refresh();
+                getch();
+            }
+            else if (highlight == 2)
             {
                 open_playground();
             }
@@ -175,15 +196,12 @@ void handle_table_menu()
 void view_tables()
 {
     int highlight = 0;
-    int num_choices = 4;
-    const char *choices[] = {
-        "Table1",
-        "Table2",
-        "Create New Table",
-        "Go Back"};
+    const char *choices[50 + 1];
+    int num_choices = list_tables(dbNode, choices);
 
     while (1)
     {
+        refresh();
         display_menu("Select a Table", choices, num_choices, &highlight);
         int ch = getch();
 
@@ -202,24 +220,8 @@ void view_tables()
             }
             break;
         case 10: // Enter key
-            if (highlight == 3)
+            if (highlight == num_choices - 1)
                 return; // Go Back
-            else if (highlight == 2)
-            {
-                clear();
-                mvprintw(0, 0, "Enter Table Name: ");
-                char table_name[MAX_INPUT];
-                echo();
-                getstr(table_name);
-                noecho();
-                refresh();
-
-                clear();
-                mvprintw(0, 0, "Table '%s' created.", table_name);
-                mvprintw(1, 0, "Press any key to go back to the menu...");
-                refresh();
-                getch();
-            }
             else
             {
                 char *selected_table = (char *)choices[highlight];

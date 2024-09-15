@@ -1,3 +1,3 @@
 cmake -S . -B build -G "Ninja"
 cmake --build build
-bin\savvy.exe
+@REM bin\savvy.exe

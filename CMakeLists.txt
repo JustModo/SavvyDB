@@ -8,6 +8,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 include_directories(${CMAKE_SOURCE_DIR}/includes)
 
-add_executable(savvy src/main.c src/menus.c)
+add_executable(savvy src/main.c src/menus.c src/dbms.c)
 
 target_link_libraries(savvy ncursesw)
