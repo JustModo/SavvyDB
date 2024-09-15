@@ -29,7 +29,8 @@ SavvyDB is a lightweight Database Management System (DBMS) built in C, designed 
    cd path\to\SavvyDB
 5. **Compile**: Compile the code using:
    build.bat
-6. **Run: Start SavvyDB by typing:
+6. **Run**: Start SavvyDB by typing:
+    ```bash
    savvy
 
 ## Usage
